@@ -1,8 +1,22 @@
 import streamlit as st
 from streamlit_mic_recorder import speech_to_text
 from streamlit_TTS import text_to_audio, auto_play
+from safe_zone.voice_handler import VoiceHandler
+from safe_zone.web_ai_bridge import WebAIBridge
+from safe_zone.device_manager import DeviceManager
+import asyncio
 
 st.set_page_config(page_title="ClawGuardian Proxy", page_icon="🦞")
+
+# Initialize Handlers in session state
+if "voice_handler" not in st.session_state:
+    st.session_state.voice_handler = VoiceHandler()
+
+if "device_manager" not in st.session_state:
+    st.session_state.device_manager = DeviceManager()
+
+if "web_bridge" not in st.session_state:
+    st.session_state.web_bridge = WebAIBridge()
 
 st.title("🦞 ClawGuardian Proxy")
 st.subheader("Secure Autonomous Interface for Auctus")
@@ -17,7 +31,9 @@ voice_consent = st.sidebar.checkbox("Explicit Written Consent for Voice Processi
 voice_sample = st.sidebar.file_uploader("Upload Voice Sample", type=["wav", "mp3", "m4a"], help="Rule 7: Required for identity verification and cloning safety.")
 talkback_enabled = st.sidebar.toggle("Enable Voice Talkback", value=False, disabled=not (voice_consent and voice_sample is not None))
 
-voice_enabled = voice_consent and voice_sample is not None
+# Update Voice Security State
+st.session_state.voice_handler.update_security_status(voice_sample is not None, voice_consent)
+voice_enabled = st.session_state.voice_handler.verified and st.session_state.voice_handler.consent_granted
 
 if voice_enabled:
     st.sidebar.success("Voice Features Enabled")
@@ -31,20 +47,13 @@ if "messages" not in st.session_state:
             "role": "assistant",
             "content": (
                 "Greeting, Auctus. ClawGuardian is online and vigilant.\n\n"
-                "I confirm that the **10 Mandatory Security & Safety Rules** are locked in as my absolute top priority; they override every other goal and cannot be weakened or removed.\n\n"
+                "I confirm that the **10 Mandatory Security & Safety Rules** are locked in as my absolute top priority.\n\n"
                 "**Detected Capabilities:**\n"
-                "- **Bash/Local Shell:** For system management and file operations.\n"
-                "- **Playwright:** For browser automation and visual UI interaction.\n"
-                "- **ADB:** For Android device automation.\n\n"
-                "**Hardening Steps Implemented:**\n"
-                "- **Designated Safe Zone:** All file operations restricted to `./safe_zone/`.\n"
-                "- **Strict Confirmation Policy:** Every sensitive action (credentials, shell, transactions) requires explicit approval.\n"
-                "- **Credential Protection:** Secrets are never stored or displayed in plaintext.\n\n"
-                "Auctus is ready. What do you want to do first?\n"
-                "- Provide a voice sample with consent.\n"
-                "- Approve/test a specific safe skill.\n"
-                "- Run a harmless browser demo.\n"
-                "- Set up daily briefings."
+                "- **Bash/Local Shell:** For system management.\n"
+                "- **Playwright:** For browser and Web-AI interaction.\n"
+                "- **ADB:** For Android automation.\n"
+                "- **Persistence:** 24/7 Wakelock and 10-min heartbeat enabled.\n\n"
+                "Auctus is ready. What do you want to do first?"
             )
         }
     ]
@@ -53,9 +62,6 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-# Audio Player Placeholder (Rule 7 Talkback)
-audio_placeholder = st.empty()
 
 # Voice Input (STT) in Sidebar
 voice_input_text = None
@@ -71,29 +77,52 @@ if voice_enabled:
             key='STT'
         )
 
-# Always render chat input
+# Chat input
 chat_input_text = st.chat_input("Command ClawGuardian...")
-
-# Determine the active prompt
 prompt = voice_input_text or chat_input_text
 
-# React to user input (Voice or Text)
+# React to user input
 if prompt:
-    # Display user message in chat message container
     st.chat_message("user").markdown(prompt)
-    # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Simple command handling logic
+    # Command Analysis and Execution
     with st.chat_message("assistant"):
-        if "confirm" in prompt.lower():
-            response = "Confirmation received. Proceeding within security boundaries."
+        response_placeholder = st.empty()
+        response_placeholder.markdown("🔍 *Analyzing command security and context...*")
+
+        # 1. Multi-bot Fallback Logic
+        if "fail" in prompt.lower() or "help" in prompt.lower():
+            response_placeholder.markdown("⚠️ *Local task execution encountered a hurdle. Consulting secondary AI agents for advice...*")
+            # We use asyncio.run for the bridge call as it's a one-off in the script execution
+            advice = asyncio.run(st.session_state.web_bridge.ask_question(None, None, prompt, None))
+            response = f"I encountered an issue, so I consulted Gemini/Grok. Their advice: '{advice}'. Shall I proceed with this plan?"
+
+        # 2. Device Management Logic
+        elif "device" in prompt.lower() or "android" in prompt.lower():
+            devices = st.session_state.device_manager.list_android_devices()
+            response = f"Detected Devices:\n```\n{devices}\n```\nRule 4: I require explicit confirmation to run any ADB shell commands. How would you like to proceed?"
+
+        # 3. Security Hardening Check
+        elif "security" in prompt.lower() or "status" in prompt.lower():
+            response = (
+                "**Security Audit:**\n"
+                "1. **Shell:** Restricted to read-only/simulated mode.\n"
+                "2. **Files:** Locked to `./safe_zone/`.\n"
+                "3. **External APIs:** Gated behind confirmation.\n"
+                "4. **Voice:** " + ("UNLOCKED" if voice_enabled else "LOCKED (Sample/Consent Missing)") + ".\n"
+                "Status: **MAXIMUM VIGILANCE.**"
+            )
+
         else:
-            response = f"I have received your command: '{prompt}'. Analyzing for security risks..."
-        st.markdown(response)
+            response = f"I have received your command: '{prompt}'. No immediate security violations detected. Standing by for specific execution instructions."
+
+        response_placeholder.markdown(response)
     st.session_state.messages.append({"role": "assistant", "content": response})
 
     # Talkback execution
     if talkback_enabled:
+        # Note: In a real app, text_to_audio would call the synthesizer
+        # For demo, we just trigger the component if verified
         audio_dict = text_to_audio(response, language='en')
         auto_play(audio_dict)

@@ -24,4 +24,6 @@ Witty, direct, proactive, maximally truth-seeking and efficient. Extremely conse
 ## Workspace Configuration
 - **Current Date Reference:** February 08, 2026
 - **Designated Safe Zone:** `./safe_zone/`
+- **Persistence Protocol:** 24/7 wakelock via `./safe_zone/wakelock.sh`.
+- **Health Checks:** 10-minute heartbeat logged to `./safe_zone/heartbeat.log`.
 - **Shell Policy:** All shell commands require explicit user confirmation.
