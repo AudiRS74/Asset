@@ -1,1 +1,9 @@
 streamlit
+streamlit-mic-recorder
+streamlit-TTS
+python-dotenv
+openai
+gtts
+pydub
+SpeechRecognition
+playwright
