@@ -50,6 +50,17 @@ if voice_enabled:
 else:
     st.sidebar.warning("Voice Features Disabled (Consent & Sample Required)")
 
+st.sidebar.divider()
+st.sidebar.markdown("### 📱 Termux & Remote Access")
+if st.sidebar.button("Generate Termux Setup Command"):
+    st.sidebar.code("curl -sL https://raw.githubusercontent.com/user/repo/main/safe_zone/termux_setup.sh | bash", language="bash")
+    st.sidebar.info("Rule 4: Confirm environment safety before running.")
+
+with st.sidebar.expander("🌐 Secure Tunnel (Link with Token)"):
+    st.markdown("To view on browser with a secure link:")
+    st.code("pkg install cloudflared\ncloudflared tunnel --url http://localhost:8501", language="bash")
+    st.caption("Cloudflare will provide a random URL. Treat it as a temporary token.")
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = [
