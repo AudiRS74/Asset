@@ -1,4 +1,6 @@
 import streamlit as st
+from streamlit_mic_recorder import speech_to_text
+from streamlit_TTS import text_to_audio, auto_play
 
 st.set_page_config(page_title="ClawGuardian Proxy", page_icon="🦞")
 
@@ -55,16 +57,28 @@ for message in st.session_state.messages:
 # Audio Player Placeholder (Rule 7 Talkback)
 audio_placeholder = st.empty()
 
-# Voice Input (STT) Placeholder in Sidebar
+# Voice Input (STT) in Sidebar
+voice_input_text = None
 if voice_enabled:
     with st.sidebar:
         st.divider()
         st.markdown("#### Voice Command")
-        # Placeholder for speech_to_text(key='my_stt') after library approval
-        st.button("🎤 Start Voice Command (Requires Library Approval)")
+        voice_input_text = speech_to_text(
+            language='en',
+            start_prompt="🎤 Start Voice Command",
+            stop_prompt="⏹️ Stop Recording",
+            just_once=True,
+            key='STT'
+        )
 
-# React to user input
-if prompt := st.chat_input("Command ClawGuardian..."):
+# Always render chat input
+chat_input_text = st.chat_input("Command ClawGuardian...")
+
+# Determine the active prompt
+prompt = voice_input_text or chat_input_text
+
+# React to user input (Voice or Text)
+if prompt:
     # Display user message in chat message container
     st.chat_message("user").markdown(prompt)
     # Add user message to chat history
@@ -79,7 +93,7 @@ if prompt := st.chat_input("Command ClawGuardian..."):
         st.markdown(response)
     st.session_state.messages.append({"role": "assistant", "content": response})
 
-    # Talkback execution (Placeholder)
+    # Talkback execution
     if talkback_enabled:
-        # This would use auto_play(text_to_audio(response)) after library approval
-        audio_placeholder.info(f"🔊 Playing response audio... (Simulation)")
+        audio_dict = text_to_audio(response, language='en')
+        auto_play(audio_dict)

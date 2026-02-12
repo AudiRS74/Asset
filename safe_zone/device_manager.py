@@ -1,19 +1,24 @@
 """
 ClawGuardian Device Manager
 Handles automation for Android, iOS, Windows, and Linux.
-Initial implementation focuses on Android via ADB.
+Utilizes ADB for Android automation.
 """
 
 import subprocess
+import shutil
 
 class DeviceManager:
     def __init__(self):
-        self.adb_path = "/opt/android-sdk/platform-tools/adb"
+        # Dynamically find adb path
+        self.adb_path = shutil.which("adb") or "/usr/bin/adb"
 
     def list_android_devices(self):
         """
         Lists connected Android devices via ADB.
         """
+        if not shutil.which("adb"):
+            return "Error: ADB binary not found in PATH."
+
         try:
             result = subprocess.run([self.adb_path, "devices"], capture_output=True, text=True)
             return result.stdout
@@ -25,7 +30,9 @@ class DeviceManager:
         Runs a shell command on a specific Android device.
         Rule 4: Requires explicit user confirmation before call.
         """
-        # Actual execution would follow user confirmation
+        if not shutil.which("adb"):
+            return "Error: ADB binary not found in PATH."
+
         cmd = [self.adb_path, "-s", device_id, "shell", command]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
@@ -35,5 +42,6 @@ class DeviceManager:
 
 if __name__ == "__main__":
     dm = DeviceManager()
+    print(f"Using ADB at: {dm.adb_path}")
     print("Detected Android Devices:")
     print(dm.list_android_devices())

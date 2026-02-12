@@ -31,7 +31,7 @@ class WebAIBridge:
     async def login_step_2_fill_credentials(self, page, username_selector, username, password_selector, password):
         """
         Step 2: Fill in credentials and submit.
-        Assumes user has already provided explicit confirmation.
+        Assumes user has already provided explicit confirmation in the UI.
         """
         await page.fill(username_selector, username)
         await page.fill(password_selector, password)
@@ -44,7 +44,7 @@ class WebAIBridge:
         """
         await page.fill(prompt_selector, question)
         await page.click(submit_selector)
-        # Wait for response logic would go here
+        # In a real implementation, we would wait for the response element to update
         return "Simulated AI Response"
 
     async def close(self):
