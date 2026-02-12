@@ -7,11 +7,12 @@ from safe_zone.device_manager import DeviceManager
 from safe_zone.bots.telegram_handler import TelegramHandler
 from safe_zone.bots.discord_handler import DiscordHandler
 from safe_zone.bots.whatsapp_handler import WhatsAppHandler
+from safe_zone.skill_loader import SkillLoader
 import asyncio
 import os
 import subprocess
 
-st.set_page_config(page_title="ClawGuardian Proxy", page_icon="🦞")
+st.set_page_config(page_title="ClawGuardian Proxy", page_icon="🦞", layout="wide")
 
 # Initialize Handlers in session state
 if "voice_handler" not in st.session_state:
@@ -22,6 +23,9 @@ if "device_manager" not in st.session_state:
 
 if "web_bridge" not in st.session_state:
     st.session_state.web_bridge = WebAIBridge()
+
+if "skill_loader" not in st.session_state:
+    st.session_state.skill_loader = SkillLoader()
 
 # Bot Handlers (OpenClaw Merge)
 if "telegram_bot" not in st.session_state:
@@ -41,7 +45,7 @@ if "playwright_installed" not in st.session_state:
         st.sidebar.error(f"Playwright Init Error: {e}")
 
 st.title("🦞 ClawGuardian Proxy")
-st.subheader("Secure Autonomous Interface for Auctus (OpenClaw Enhanced)")
+st.subheader("Hybrid Secure Autonomous System (OpenClaw + Python Skills)")
 
 # Sidebar for Security and Settings
 st.sidebar.markdown("### Security Status: 🟢 VIGILANT")
@@ -98,98 +102,117 @@ st.sidebar.markdown("### 📱 Termux & Remote Access")
 if st.sidebar.button("Generate Termux Setup Command"):
     st.sidebar.code("curl -sL https://raw.githubusercontent.com/user/repo/main/safe_zone/termux_setup.sh | bash", language="bash")
 
-with st.sidebar.expander("🌐 Secure Tunnel (Link with Token)"):
-    st.markdown("To view on browser with a secure link:")
-    st.code("pkg install cloudflared\ncloudflared tunnel --url http://localhost:8501", language="bash")
+# Tabs for Hybrid Interface
+tab_chat, tab_openclaw = st.tabs(["🛡️ Vigilant Chat", "🎮 OpenClaw Control"])
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "assistant",
-            "content": (
-                "Greeting, Auctus. ClawGuardian (OpenClaw Enhanced) is online and vigilant.\n\n"
-                "**Detected Capabilities:**\n"
-                "- **Omni-Bot Integration:** Telegram, WhatsApp, and Discord support.\n"
-                "- **Unrestricted Protocol:** Rule 11 override available (e.g., 'sudo rm -rf ./tmp').\n"
-                "- **Browser Engine:** Playwright active for Web-AI fallback.\n"
-                "- **ADB:** For Android automation.\n\n"
-                "Auctus is ready. What do you want to do first?"
+with tab_chat:
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {
+                "role": "assistant",
+                "content": (
+                    "Greeting, Auctus. ClawGuardian (OpenClaw + Python Enhanced) is online.\n\n"
+                    "**Hybrid Capabilities:**\n"
+                    "- **Python Skill System:** Dynamically loading scripts from `./safe_zone/skills/`.\n"
+                    "- **OpenClaw Gateway:** Full Node.js assistant integration (see Control tab).\n"
+                    "- **Omni-Bot Support:** Telegram, WhatsApp, and Discord.\n\n"
+                    "Auctus is ready. What do you want to do first?"
+                )
+            }
+        ]
+
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Voice Input (STT) in Sidebar
+    voice_input_text = None
+    if voice_enabled:
+        with st.sidebar:
+            st.divider()
+            st.markdown("#### Voice Command")
+            voice_input_text = speech_to_text(
+                language='en',
+                start_prompt="🎤 Start Voice Command",
+                stop_prompt="⏹️ Stop Recording",
+                just_once=True,
+                key='STT'
             )
-        },
-        {
-            "role": "assistant",
-            "content": "💡 **Pro-Tip:** To use Unrestricted Mode, toggle 'Dangerous Mode' in the sidebar, grant rights, and then use prefix 'sudo' or 'shell' in your commands."
-        }
-    ]
 
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    # Chat input
+    chat_input_text = st.chat_input("Command ClawGuardian...")
+    prompt = voice_input_text or chat_input_text
 
-# Voice Input (STT) in Sidebar
-voice_input_text = None
-if voice_enabled:
-    with st.sidebar:
-        st.divider()
-        st.markdown("#### Voice Command")
-        voice_input_text = speech_to_text(
-            language='en',
-            start_prompt="🎤 Start Voice Command",
-            stop_prompt="⏹️ Stop Recording",
-            just_once=True,
-            key='STT'
-        )
+    # React to user input
+    if prompt:
+        st.chat_message("user").markdown(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-# Chat input
-chat_input_text = st.chat_input("Command ClawGuardian...")
-prompt = voice_input_text or chat_input_text
+        # Command Analysis and Execution
+        with st.chat_message("assistant"):
+            response_placeholder = st.empty()
+            response_placeholder.markdown("🔍 *Analyzing command security and context...*")
 
-# React to user input
-if prompt:
-    st.chat_message("user").markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
+            # Rule 11 Check
+            is_dangerous = "sudo" in prompt.lower() or "shell" in prompt.lower() or "exec" in prompt.lower()
 
-    # Command Analysis and Execution
-    with st.chat_message("assistant"):
-        response_placeholder = st.empty()
-        response_placeholder.markdown("🔍 *Analyzing command security and context...*")
-
-        # Rule 11 Check
-        is_dangerous = "sudo" in prompt.lower() or "shell" in prompt.lower() or "exec" in prompt.lower()
-
-        if is_dangerous and not st.session_state.get("unrestricted", False):
-            response = "🛑 ERROR: This command violates Security Rules 1-10. Enable **Dangerous Mode** (Rule 11) in the sidebar to proceed."
-        else:
-            if st.session_state.get("unrestricted", False) and is_dangerous:
-                # Real shell command execution for Unrestricted Mode
-                try:
-                    cmd = prompt.replace("sudo ", "").replace("shell ", "").replace("exec ", "")
-                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
-                    response = f"⚠️ RULE 11 OVERRIDE SUCCESSFUL. Output:\n```\n{result.stdout}\n{result.stderr}\n```"
-                except Exception as e:
-                    response = f"❌ Rule 11 Execution Failed: {e}"
-            # 1. Multi-bot Fallback Logic (NOW WITH REAL PLAYWRIGHT)
-            elif "search" in prompt.lower() or "ask" in prompt.lower():
-                response_placeholder.markdown("⚠️ *Consulting web resources via Playwright...*")
-                advice = asyncio.run(st.session_state.web_bridge.ask_question(None, None, prompt, None))
-                response = f"I've performed a browser search for you. Result: {advice}"
-            # 2. Device Management Logic
-            elif "device" in prompt.lower() or "android" in prompt.lower():
-                devices = st.session_state.device_manager.list_android_devices()
-                response = f"Detected Devices:\n```\n{devices}\n```\nRule 4: Confirm ADB shell commands?"
-            # 3. Security Hardening Check
-            elif "security" in prompt.lower() or "status" in prompt.lower():
-                mode = "🔴 UNRESTRICTED" if st.session_state.get("unrestricted", False) else "🟢 VIGILANT"
-                response = f"**Security Audit:**\nStatus: **{mode}**\n- Shell: {'UNLOCKED' if st.session_state.get('unrestricted') else 'RESTRICTED'}\n- Omni-Bots: Active"
+            if is_dangerous and not st.session_state.get("unrestricted", False):
+                response = "🛑 ERROR: This command violates Security Rules 1-10. Enable **Dangerous Mode** (Rule 11) in the sidebar to proceed."
             else:
-                response = f"Command received: '{prompt}'. Standing by for instructions."
+                # 0. Check Python Skill Loader first (The "More" part)
+                skill_response = st.session_state.skill_loader.run_skill(prompt)
 
-        response_placeholder.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+                if skill_response:
+                    response = skill_response
+                elif st.session_state.get("unrestricted", False) and is_dangerous:
+                    # Real shell command execution for Unrestricted Mode
+                    try:
+                        cmd = prompt.replace("sudo ", "").replace("shell ", "").replace("exec ", "")
+                        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                        response = f"⚠️ RULE 11 OVERRIDE SUCCESSFUL. Output:\n```\n{result.stdout}\n{result.stderr}\n```"
+                    except Exception as e:
+                        response = f"❌ Rule 11 Execution Failed: {e}"
+                # 1. Multi-bot Fallback Logic
+                elif "search" in prompt.lower() or "ask" in prompt.lower():
+                    response_placeholder.markdown("⚠️ *Consulting web resources via Playwright...*")
+                    advice = asyncio.run(st.session_state.web_bridge.ask_question(None, None, prompt, None))
+                    response = f"I've performed a browser search for you. Result: {advice}"
+                # 2. Device Management Logic
+                elif "device" in prompt.lower() or "android" in prompt.lower():
+                    devices = st.session_state.device_manager.list_android_devices()
+                    response = f"Detected Devices:\n```\n{devices}\n```\nRule 4: Confirm ADB shell commands?"
+                # 3. Security Hardening Check
+                elif "security" in prompt.lower() or "status" in prompt.lower():
+                    mode = "🔴 UNRESTRICTED" if st.session_state.get("unrestricted", False) else "🟢 VIGILANT"
+                    response = f"**Security Audit:**\nStatus: **{mode}**\n- Shell: {'UNLOCKED' if st.session_state.get('unrestricted') else 'RESTRICTED'}\n- Omni-Bots: Active"
+                else:
+                    response = f"Command received: '{prompt}'. Standing by for instructions. (No matching Python skill found)"
 
-    # Talkback execution
-    if talkback_enabled:
-        audio_dict = text_to_audio(response, language='en')
-        auto_play(audio_dict)
+            response_placeholder.markdown(response)
+        st.session_state.messages.append({"role": "assistant", "content": response})
+
+        # Talkback execution
+        if talkback_enabled:
+            audio_dict = text_to_audio(response, language='en')
+            auto_play(audio_dict)
+
+with tab_openclaw:
+    st.markdown("### OpenClaw Gateway Interface")
+    st.info("Ensure the OpenClaw Gateway process is running on port 18789.")
+
+    # Check if port is open
+    import socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex(('127.0.0.1', 18789))
+    if result == 0:
+        st.success("OpenClaw Gateway is ONLINE.")
+        # Render Control UI if possible (Iframe)
+        st.components.v1.iframe("http://localhost:18789", height=800, scrolling=True)
+    else:
+        st.error("OpenClaw Gateway is OFFLINE.")
+        st.markdown("Run `pnpm gateway` in `openclaw_repo` to start.")
+        if st.button("Attempt Background Start (Rule 4 Confirmation Implicit)"):
+             subprocess.Popen(["npm", "run", "gateway"], cwd="openclaw_repo", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+             st.rerun()
