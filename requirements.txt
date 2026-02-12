@@ -7,3 +7,5 @@ gtts
 pydub
 SpeechRecognition
 playwright
+python-telegram-bot
+discord.py

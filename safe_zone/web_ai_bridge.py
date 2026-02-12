@@ -20,26 +20,25 @@ class WebAIBridge:
             self.browser = await self.playwright.chromium.launch(headless=True)
             self.context = await self.browser.new_context()
 
-    async def login_step_1_navigate(self, service_url):
-        await self.start()
-        page = await self.context.new_page()
-        await page.goto(service_url)
-        return page
-
-    async def login_step_2_fill_credentials(self, page, username_selector, username, password_selector, password):
-        await page.fill(username_selector, username)
-        await page.fill(password_selector, password)
-        await page.click("button[type='submit']")
-        return True
-
     async def ask_question(self, page, prompt_selector, question, submit_selector):
         """
         Interact with the AI chat interface.
-        If page is None, it returns a simulated 'Fallback Insight'.
+        If page is None, it performs a real Google search as a fallback demonstration.
         """
+        await self.start()
         if page is None:
-            # Simulated fallback for demonstration when no active session exists
-            return f"Fallback Insight: Based on multi-agent consensus, the best approach for '{question}' is to verify system constraints and proceed with caution."
+            # Demonstration of REAL browser automation
+            demo_page = await self.context.new_page()
+            try:
+                await demo_page.goto("https://www.google.com/search?q=" + question.replace(" ", "+"))
+                title = await demo_page.title()
+                # Extract first result snippet if possible
+                snippet = await demo_page.locator("div.VwiC3b").first.inner_text()
+                return f"Browser Insight (via Google): '{snippet}' (Page Title: {title})"
+            except Exception as e:
+                return f"Browser Consultation Failed: {e}"
+            finally:
+                await demo_page.close()
 
         try:
             await page.fill(prompt_selector, question)
