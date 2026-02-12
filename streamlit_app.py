@@ -18,6 +18,16 @@ if "device_manager" not in st.session_state:
 if "web_bridge" not in st.session_state:
     st.session_state.web_bridge = WebAIBridge()
 
+# Playwright Initialization for Cloud Deployment
+if "playwright_installed" not in st.session_state:
+    try:
+        import subprocess
+        import sys
+        subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+        st.session_state.playwright_installed = True
+    except Exception as e:
+        st.sidebar.error(f"Playwright Init Error: {e}")
+
 st.title("🦞 ClawGuardian Proxy")
 st.subheader("Secure Autonomous Interface for Auctus")
 
